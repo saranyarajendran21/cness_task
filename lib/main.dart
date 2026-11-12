@@ -1,122 +1,118 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'core/constants/app_colors.dart';
+import 'core/constants/app_strings.dart';
+import 'core/network/api_client.dart';
+import 'core/network/network_info.dart';
+import 'core/storage/token_storage.dart';
+import 'data/api/auth_api.dart';
+import 'data/api/dashboard_api.dart';
+import 'data/api/profile_api.dart';
+import 'logic/auth_logic.dart';
+import 'logic/dashboard_logic.dart';
+import 'logic/profile_logic.dart';
+import 'providers/auth_provider.dart';
+import 'providers/dashboard_provider.dart';
+import 'providers/profile_provider.dart';
+import 'ui/screens/dashboard_screen.dart';
+import 'ui/screens/login_screen.dart';
 
 void main() {
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final networkInfo = NetworkInfoImpl();
+  final apiClient = ApiClient(networkInfo: networkInfo);
+  final tokenStorage = TokenStorage();
+
+  final authApi = AuthApi(apiClient: apiClient);
+  final dashboardApi = DashboardApi(apiClient: apiClient);
+  final profileApi = ProfileApi(apiClient: apiClient);
+
+  final authLogic = AuthLogic(
+    authApi: authApi,
+    tokenStorage: tokenStorage,
+    networkInfo: networkInfo,
+  );
+  final dashboardLogic = DashboardLogic(
+    dashboardApi: dashboardApi,
+    tokenStorage: tokenStorage,
+    networkInfo: networkInfo,
+  );
+  final profileLogic = ProfileLogic(
+    profileApi: profileApi,
+    tokenStorage: tokenStorage,
+    networkInfo: networkInfo,
+  );
+
+  runApp(
+    CnessApp(
+      authLogic: authLogic,
+      dashboardLogic: dashboardLogic,
+      profileLogic: profileLogic,
+    ),
+  );
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class CnessApp extends StatelessWidget {
+  const CnessApp({
+    super.key,
+    required this.authLogic,
+    required this.dashboardLogic,
+    required this.profileLogic,
+  });
 
-  // This widget is the root of your application.
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
+  final AuthLogic authLogic;
+  final DashboardLogic dashboardLogic;
+  final ProfileLogic profileLogic;
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(authLogic: authLogic)..initialize(),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+        ChangeNotifierProvider(
+          create: (_) => DashboardProvider(dashboardLogic: dashboardLogic),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ProfileProvider(profileLogic: profileLogic),
+        ),
+      ],
+      child: MaterialApp(
+        title: AppStrings.appName,
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryBlue),
+          scaffoldBackgroundColor: AppColors.scaffoldBg,
+          useMaterial3: true,
+        ),
+        home: const _AppEntryGate(),
       ),
     );
+  }
+}
+
+class _AppEntryGate extends StatelessWidget {
+  const _AppEntryGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    if (auth.isInitializing) {
+      return const Scaffold(
+        backgroundColor: AppColors.headerDark,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.white),
+        ),
+      );
+    }
+
+    if (auth.isAuthenticated) {
+      return const DashboardScreen();
+    }
+
+    return const LoginScreen();
   }
 }
